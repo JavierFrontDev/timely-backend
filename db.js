@@ -1,7 +1,14 @@
 const { DatabaseSync } = require("node:sqlite");
+const fs = require("fs");
 const path = require("path");
 
-const db = new DatabaseSync(path.join(__dirname, "timely.db"));
+// En Railway montamos un volumen persistente en /app/data (variable DATA_DIR).
+// Si esa carpeta existe, la base de datos vive ahí para sobrevivir a los
+// despliegues. Si no (por ejemplo, en tu ordenador), usa la carpeta normal.
+const DATA_DIR = process.env.DATA_DIR || (fs.existsSync("/app/data") ? "/app/data" : __dirname);
+const DB_PATH = path.join(DATA_DIR, "timely.db");
+
+const db = new DatabaseSync(DB_PATH);
 db.exec("PRAGMA journal_mode = WAL");
 db.exec("PRAGMA foreign_keys = ON");
 
