@@ -58,7 +58,7 @@ router.post("/", (req, res) => {
     slug,
     name: name.trim(),
     token,
-    publicUrl: "/?negocio=" + slug,
+    publicUrl: "/reservar.html?negocio=" + slug,
     adminUrl: "/admin.html?negocio=" + slug,
   });
 });

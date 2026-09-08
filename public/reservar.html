@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reservar cita — Timely</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAF7F1; --surface: #FFFFFF; --ink: #1B2430; --brass: #BD9552; --brass-soft: #EFE1C8;
+    --sage: #4F6F52; --text: #2A2A28; --muted: #8A8577; --line: #E7E1D6; --rust: #B5533C;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); display: flex; justify-content: center; min-height: 100vh; }
+  .wrap { width: 100%; max-width: 480px; }
+  .header { background: var(--ink); color: #F3EFE6; padding: 28px 24px 22px; }
+  .header .brand { display: flex; align-items: center; gap: 8px; font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; }
+  .header .addr { font-size: 13px; color: #B9B2A2; margin-top: 6px; }
+  .stepbar { display: flex; padding: 16px 24px 0; gap: 6px; }
+  .stepbar .seg { flex: 1; }
+  .stepbar .bar { height: 3px; border-radius: 2px; background: var(--line); margin-bottom: 6px; }
+  .stepbar .bar.active { background: var(--brass); }
+  .stepbar .label { font-size: 11px; color: var(--muted); }
+  .stepbar .label.active { color: var(--text); font-weight: 600; }
+  .content { padding: 24px; }
+  h2 { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; margin: 0 0 16px; }
+  .card-btn { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; text-align: left; width: 100%; font-family: 'Inter', sans-serif; font-size: 15px; margin-bottom: 10px; }
+  .card-btn .name { font-weight: 600; font-size: 15px; }
+  .card-btn .meta { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+  .card-btn .price { font-weight: 700; font-size: 15px; color: var(--ink); }
+  .back-link { border: none; background: none; cursor: pointer; color: var(--muted); display: flex; align-items: center; gap: 4px; font-size: 13px; padding: 0; margin-bottom: 14px; }
+  .date-nav { display: flex; align-items: center; gap: 10px; margin: 16px 0; }
+  .icon-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+  .date-label { font-weight: 600; font-size: 14px; flex: 1; text-align: center; text-transform: capitalize; }
+  .slots-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .slot-btn { padding: 10px 0; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: 13.5px; font-weight: 600; }
+  .empty-msg { padding: 30px 0; text-align: center; color: var(--muted); font-size: 13.5px; }
+  .summary-box { background: var(--brass-soft); border-radius: 10px; padding: 14px; }
+  .summary-box .svc { font-weight: 700; font-size: 14.5px; }
+  .summary-box .details { font-size: 12.5px; color: #5A4C33; margin-top: 4px; line-height: 1.6; }
+  .field { margin-top: 12px; }
+  .field-label { font-size: 12.5px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+  input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 14px; font-family: 'Inter', sans-serif; background: #FCFAF6; color: var(--text); }
+  .primary-btn { background: var(--ink); color: #F7F1E4; border: none; padding: 13px 0; border-radius: 10px; font-size: 14.5px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 20px; }
+  .primary-btn:disabled { opacity: 0.5; cursor: default; }
+  .error-msg { color: var(--rust); font-size: 12.5px; margin-top: 10px; }
+  .confirmed { text-align: center; padding: 20px 0; }
+  .check-circle { width: 52px; height: 52px; border-radius: 999px; background: var(--sage); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #fff; font-size: 26px; }
+  .loading, .load-error { padding: 40px 24px; color: var(--muted); font-family: 'Inter', sans-serif; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="loading">Cargando…</div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const SLUG = params.get('negocio') || 'barberia-central';
+const DAY_START = 8, DAY_END = 21, SLOT_MIN = 30;
+
+let business = null;
+let step = 1;
+let selectedService = null;
+let selectedStaffId = null;
+let currentDate = new Date();
+let availability = [];
+let selectedSlot = null;
+
+function pad(n) { return n.toString().padStart(2, '0'); }
+function fmtDate(d) { return d.toISOString().slice(0, 10); }
+function toMinutes(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+function fromMinutes(mins) { return pad(Math.floor(mins / 60)) + ':' + pad(mins % 60); }
+function fmtDateLong(d) {
+  const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  return days[d.getDay()] + ', ' + d.getDate() + ' de ' + months[d.getMonth()];
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    method: opts.method || 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Error ' + res.status);
+  return data;
+}
+
+async function loadBusiness() {
+  try {
+    business = await api('/api/' + SLUG);
+    step = 1;
+    render();
+  } catch (e) {
+    document.getElementById('app').innerHTML = '<div class="load-error">No se pudo cargar este negocio (' + e.message + ').</div>';
+  }
+}
+
+async function loadAvailability() {
+  const p = new URLSearchParams({ serviceId: selectedService.id, date: fmtDate(currentDate) });
+  if (selectedStaffId) p.set('staffId', selectedStaffId);
+  try {
+    const data = await api('/api/' + SLUG + '/availability?' + p.toString());
+    availability = data.availability;
+  } catch (e) {
+    availability = [];
+  }
+  render();
+}
+
+function slotsByTime() {
+  const map = {};
+  for (const s of availability) {
+    if (!map[s.time]) map[s.time] = [];
+    map[s.time].push(s.staffId);
+  }
+  return map;
+}
+
+function header() {
+  return '<div class="header"><div class="brand">✂️ ' + business.name + '</div>' +
+    (business.address ? '<div class="addr">📍 ' + business.address + '</div>' : '') + '</div>';
+}
+
+function stepBar() {
+  const labels = ['Servicio', 'Profesional', 'Hora', 'Datos'];
+  let html = '<div class="stepbar">';
+  labels.forEach((l, i) => {
+    const active = i + 1 <= step;
+    const isCurrent = i + 1 === step;
+    html += '<div class="seg"><div class="bar ' + (active ? 'active' : '') + '"></div><div class="label ' + (isCurrent ? 'active' : '') + '">' + l + '</div></div>';
+  });
+  return html + '</div>';
+}
+
+function render() {
+  const app = document.getElementById('app');
+  let content = '';
+
+  if (step === 1) {
+    content = '<h2>¿Qué te apetece hoy?</h2>';
+    business.services.forEach(s => {
+      content += '<button class="card-btn" onclick="chooseService(\'' + s.id + '\')">' +
+        '<div><div class="name">' + s.name + '</div><div class="meta">⏱ ' + s.duration + ' min</div></div>' +
+        '<div class="price">' + s.price + '€</div></button>';
+    });
+    if (business.services.length === 0) content += '<div class="empty-msg">Este negocio aún no tiene servicios configurados.</div>';
+  }
+
+  if (step === 2) {
+    content = '<button class="back-link" onclick="goStep(1)">← Atrás</button><h2>¿Con quién?</h2>';
+    content += '<button class="card-btn" onclick="chooseStaff(null)"><div><div class="name">Sin preferencia</div><div class="meta">Te asignamos el primer hueco libre</div></div></button>';
+    business.staff.forEach(s => {
+      content += '<button class="card-btn" onclick="chooseStaff(\'' + s.id + '\')">' +
+        '<div><div class="name">' + s.name + '</div><div class="meta">' + (s.role || 'Profesional') + '</div></div></button>';
+    });
+  }
+
+  if (step === 3) {
+    content = '<button class="back-link" onclick="goStep(2)">← Atrás</button><h2>Elige día y hora</h2>';
+    content += '<div class="date-nav"><button class="icon-btn" onclick="shiftDay(-1)">‹</button>' +
+      '<div class="date-label">' + fmtDateLong(currentDate) + '</div>' +
+      '<button class="icon-btn" onclick="shiftDay(1)">›</button></div>';
+    const byTime = slotsByTime();
+    const times = Object.keys(byTime);
+    if (times.length === 0) {
+      content += '<div class="empty-msg">No quedan huecos este día. Prueba con otra fecha.</div>';
+    } else {
+      content += '<div class="slots-grid">';
+      times.forEach(t => {
+        content += '<button class="slot-btn" onclick="pickSlot(\'' + t + '\',\'' + byTime[t][0] + '\')">' + t + '</button>';
+      });
+      content += '</div>';
+    }
+  }
+
+  if (step === 4) {
+    const staffName = selectedSlot.staffId ? (business.staff.find(s => s.id === selectedSlot.staffId) || {}).name : null;
+    content = '<button class="back-link" onclick="goStep(3)">← Atrás</button><h2>Tus datos</h2>' + summaryBox(staffName);
+    content += '<div class="field"><div class="field-label">Nombre</div><input id="nameInput" placeholder="Tu nombre" oninput="checkForm()"></div>';
+    content += '<div class="field"><div class="field-label">Teléfono</div><input id="phoneInput" placeholder="600 000 000"></div>';
+    content += '<div id="bookErr"></div>';
+    content += '<button class="primary-btn" id="confirmBtn" disabled onclick="confirmBooking()">Confirmar cita</button>';
+  }
+
+  if (step === 5) {
+    const staffName = selectedSlot.staffId ? (business.staff.find(s => s.id === selectedSlot.staffId) || {}).name : null;
+    content = '<div class="confirmed"><div class="check-circle">✓</div><h2>¡Cita confirmada!</h2>' +
+      summaryBox(staffName) +
+      '<button class="primary-btn" onclick="resetFlow()">Reservar otra cita</button></div>';
+  }
+
+  app.innerHTML = header() + (step < 5 ? stepBar() : '') + '<div class="content">' + content + '</div>';
+}
+
+function summaryBox(staffName) {
+  const svc = selectedService;
+  return '<div class="summary-box"><div class="svc">' + svc.name + '</div>' +
+    '<div class="details">Con ' + (staffName || 'el primer profesional libre') + '<br>' +
+    fmtDateLong(currentDate) + ' a las ' + selectedSlot.time + '<br>' +
+    svc.duration + ' min · ' + svc.price + '€</div></div>';
+}
+
+function chooseService(id) {
+  selectedService = business.services.find(s => s.id === id);
+  step = 2;
+  render();
+}
+function chooseStaff(id) {
+  selectedStaffId = id;
+  step = 3;
+  loadAvailability();
+}
+function shiftDay(delta) {
+  currentDate.setDate(currentDate.getDate() + delta);
+  selectedSlot = null;
+  loadAvailability();
+}
+function pickSlot(time, staffId) {
+  selectedSlot = { time, staffId };
+  step = 4;
+  render();
+}
+function goStep(n) { step = n; render(); }
+function checkForm() {
+  const name = document.getElementById('nameInput').value.trim();
+  document.getElementById('confirmBtn').disabled = !name;
+}
+async function confirmBooking() {
+  const name = document.getElementById('nameInput').value.trim();
+  const phone = document.getElementById('phoneInput').value.trim();
+  if (!name) return;
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.textContent = 'Confirmando…';
+  try {
+    await api('/api/' + SLUG + '/appointments', {
+      method: 'POST',
+      body: { serviceId: selectedService.id, staffId: selectedSlot.staffId, date: fmtDate(currentDate), start: selectedSlot.time, name, phone },
+    });
+    step = 5;
+    render();
+  } catch (e) {
+    document.getElementById('bookErr').innerHTML = '<div class="error-msg">' + e.message + '</div>';
+    btn.disabled = false;
+    btn.textContent = 'Confirmar cita';
+  }
+}
+function resetFlow() {
+  step = 1; selectedService = null; selectedStaffId = null; selectedSlot = null;
+  render();
+}
+
+loadBusiness();
+</script>
+</body>
+</html>
