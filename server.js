@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const db = require("./db");
 const publicRoutes = require("./routes/public");
 const adminRoutes = require("./routes/admin");
@@ -7,6 +8,10 @@ const adminRoutes = require("./routes/admin");
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Sirve las páginas del frontend (public/index.html = reserva de clientes,
+// public/admin.html = panel del negocio) directamente desde este mismo servidor.
+app.use(express.static(path.join(__dirname, "public")));
 
 // Middleware: resuelve el negocio a partir del slug en la URL (/api/:slug/...)
 // Esto es lo que hace que Timely sea multi-negocio: cada barbería/peluquería

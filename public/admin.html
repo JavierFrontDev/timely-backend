@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Panel — Timely</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAF7F1; --surface: #FFFFFF; --ink: #1B2430; --brass: #BD9552; --brass-soft: #EFE1C8;
+    --sage: #4F6F52; --text: #2A2A28; --muted: #8A8577; --line: #E7E1D6; --rust: #B5533C; --rust-soft: #F3E1DC;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); }
+  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .login-card { width: 340px; background: var(--surface); border-radius: 14px; padding: 28px; border: 1px solid var(--line); }
+  .brand { display: flex; align-items: center; gap: 8px; font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; }
+  .sub { font-size: 13px; color: var(--muted); margin: 4px 0 20px; }
+  .field-label { font-size: 12.5px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+  input, select { width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line); font-size: 14px; font-family: 'Inter', sans-serif; background: #FCFAF6; color: var(--text); }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px; border-radius: 8px; font-size: 13.5px; font-weight: 600; cursor: pointer; border: none; }
+  .btn-dark { background: var(--ink); color: #F7F1E4; }
+  .btn-dark:disabled { opacity: 0.5; }
+  .err { color: var(--rust); font-size: 12.5px; margin-top: 8px; }
+  .hint { font-size: 11.5px; color: var(--muted); margin-top: 14px; line-height: 1.5; }
+
+  .app-layout { display: none; }
+  .app-layout.active { display: flex; min-height: 100vh; }
+  .sidebar { width: 200px; background: var(--ink); color: #F3EFE6; display: flex; flex-direction: column; flex-shrink: 0; }
+  .sidebar-header { padding: 24px 20px 20px; border-bottom: 1px solid #ffffff1a; }
+  .sidebar-header .bizname { font-size: 12px; color: #B9B2A2; margin-top: 4px; }
+  .nav { padding: 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; border: none; cursor: pointer; background: transparent; color: #C7C0B0; font-size: 14px; font-weight: 500; text-align: left; width: 100%; border-left: 2px solid transparent; }
+  .nav-item.active { background: #ffffff14; color: #F7F1E4; border-left: 2px solid var(--brass); }
+  .logout-btn { margin: 16px; display: flex; align-items: center; gap: 8px; background: none; border: none; color: #C7C0B0; cursor: pointer; font-size: 13px; margin-top: auto; }
+  .main { flex: 1; padding: 28px 32px; overflow: auto; }
+
+  .section-title { font-family: 'Fraunces', serif; font-size: 21px; font-weight: 600; }
+  .section-sub { font-size: 13px; color: var(--muted); margin-top: 2px; margin-bottom: 20px; }
+  .agenda-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .date-controls { display: flex; align-items: center; gap: 10px; }
+  .icon-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+  .date-label { font-family: 'Fraunces', serif; font-size: 21px; font-weight: 600; min-width: 200px; text-transform: capitalize; }
+  .pills { display: flex; gap: 6px; margin-bottom: 18px; }
+  .pill { padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid var(--line); background: var(--surface); display: flex; align-items: center; gap: 6px; }
+  .pill.active { border-color: var(--ink); background: var(--ink); color: #F7F1E4; }
+  .dot { width: 7px; height: 7px; border-radius: 999px; display: inline-block; }
+
+  .agenda-table { background: var(--surface); border-radius: 10px; border: 1px solid var(--line); overflow: hidden; }
+  .grid { display: grid; }
+  .cell { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); min-height: 30px; }
+  .head-cell { padding: 10px 14px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .time-cell { padding: 6px 10px; font-size: 12px; color: var(--muted); text-align: right; }
+  .slot-cell { border: none; background: transparent; cursor: pointer; padding: 0; }
+  .slot-cell:hover { background: #F1EBDD; }
+  .appt-cell { padding: 4px; }
+  .appt-btn { width: 100%; height: 100%; text-align: left; border: none; cursor: pointer; background: var(--brass-soft); border-radius: 6px; padding: 6px 8px; font-family: 'Inter', sans-serif; }
+  .appt-client { font-size: 13px; font-weight: 600; }
+  .appt-service { font-size: 11.5px; color: var(--muted); }
+
+  .list-card { background: var(--surface); border-radius: 10px; border: 1px solid var(--line); margin-bottom: 16px; }
+  .list-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 18px; border-bottom: 1px solid var(--line); }
+  .list-row:last-child { border-bottom: none; }
+  .row-name { font-weight: 600; font-size: 14.5px; }
+  .row-meta { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .icon-plain-btn { border: none; background: none; cursor: pointer; color: var(--muted); font-size: 16px; }
+  .add-row { display: flex; gap: 8px; }
+  .add-row input { flex: 1; }
+
+  .modal-overlay { position: fixed; inset: 0; background: #1B243066; display: none; align-items: center; justify-content: center; z-index: 50; }
+  .modal-overlay.active { display: flex; }
+  .modal-box { background: var(--surface); border-radius: 14px; width: 420px; padding: 24px; max-width: 90vw; }
+  .modal-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .modal-title { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; }
+  .modal-close { border: none; background: none; cursor: pointer; color: var(--muted); font-size: 18px; }
+  .modal-field { margin-bottom: 14px; }
+  .modal-row { display: flex; gap: 12px; }
+  .modal-row .modal-field { flex: 1; }
+  .modal-footer { display: flex; justify-content: space-between; margin-top: 10px; }
+  .btn-rust { background: var(--rust-soft); color: var(--rust); }
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-wrap">
+  <div class="login-card">
+    <div class="brand">✂️ Timely</div>
+    <div class="sub" id="loginSub">Panel del negocio</div>
+    <div class="field-label">Contraseña de administrador</div>
+    <input id="passwordInput" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="err" id="loginErr"></div>
+    <button class="btn btn-dark" style="width:100%;margin-top:16px" id="loginBtn" onclick="doLogin()">Entrar</button>
+    <div class="hint">El slug del negocio se toma de la URL: <code>?negocio=tu-slug</code></div>
+  </div>
+</div>
+
+<div id="appLayout" class="app-layout">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">✂️ Timely</div>
+      <div class="bizname" id="bizName"></div>
+    </div>
+    <div class="nav">
+      <button class="nav-item active" data-view="agenda" onclick="switchView('agenda')">📅 Agenda</button>
+      <button class="nav-item" data-view="clientes" onclick="switchView('clientes')">👥 Clientes</button>
+      <button class="nav-item" data-view="servicios" onclick="switchView('servicios')">✂️ Servicios</button>
+      <button class="nav-item" data-view="equipo" onclick="switchView('equipo')">⚙️ Equipo</button>
+    </div>
+    <button class="logout-btn" onclick="logout()">⏻ Cerrar sesión</button>
+  </div>
+  <div class="main" id="mainContent"></div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const SLUG = params.get('negocio') || 'barberia-central';
+const DAY_START = 8, DAY_END = 21, SLOT_MIN = 30;
+let token = null, info = null, appointments = [], clients = [];
+let currentDate = new Date(), activeStaffId = 'all', view = 'agenda';
+
+function pad(n) { return n.toString().padStart(2, '0'); }
+function fmtDate(d) { return d.toISOString().slice(0, 10); }
+function toMinutes(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+function fmtDateLabel(d) {
+  const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  return days[d.getDay()] + ', ' + d.getDate() + ' ' + months[d.getMonth()];
+}
+function timeSlots() {
+  const slots = [];
+  for (let h = DAY_START; h < DAY_END; h++) for (let m = 0; m < 60; m += SLOT_MIN) slots.push(pad(h) + ':' + pad(m));
+  return slots;
+}
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    method: opts.method || 'GET',
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'Error ' + res.status);
+  return data;
+}
+
+document.getElementById('loginSub').textContent = 'Panel de ' + SLUG;
+
+async function doLogin() {
+  const password = document.getElementById('passwordInput').value;
+  const btn = document.getElementById('loginBtn');
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  try {
+    const data = await api('/api/' + SLUG + '/admin/login', { method: 'POST', body: { password } });
+    token = data.token;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appLayout').classList.add('active');
+    await bootDashboard();
+  } catch (e) {
+    errEl.textContent = e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Entrar';
+  }
+}
+function logout() {
+  token = null;
+  document.getElementById('appLayout').classList.remove('active');
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+async function bootDashboard() {
+  info = await api('/api/' + SLUG);
+  document.getElementById('bizName').textContent = info.name;
+  await Promise.all([loadAppointments(), loadClients()]);
+  renderView();
+}
+async function loadAppointments() {
+  const data = await api('/api/' + SLUG + '/admin/appointments?date=' + fmtDate(currentDate));
+  appointments = data.appointments;
+}
+async function loadClients() {
+  const data = await api('/api/' + SLUG + '/admin/clients');
+  clients = data.clients;
+}
+
+function switchView(v) {
+  view = v;
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === v));
+  renderView();
+}
+
+function renderView() {
+  const main = document.getElementById('mainContent');
+  if (view === 'agenda') main.innerHTML = renderAgenda();
+  if (view === 'clientes') main.innerHTML = renderClients();
+  if (view === 'servicios') main.innerHTML = renderServices();
+  if (view === 'equipo') main.innerHTML = renderStaff();
+}
+
+// ---------- AGENDA ----------
+function renderAgenda() {
+  const staff = info.staff;
+  const visibleStaff = activeStaffId === 'all' ? staff : staff.filter(s => s.id === activeStaffId);
+  const activeAppts = appointments.filter(a => a.status !== 'cancelled');
+  const slots = timeSlots();
+
+  let html = '<div class="agenda-top"><div class="date-controls">' +
+    '<button class="icon-btn" onclick="shiftDay(-1)">‹</button>' +
+    '<div class="date-label">' + fmtDateLabel(currentDate) + '</div>' +
+    '<button class="icon-btn" onclick="shiftDay(1)">›</button></div></div>';
+
+  html += '<div class="pills"><button class="pill ' + (activeStaffId === 'all' ? 'active' : '') + '" onclick="setStaffFilter(\'all\')">Todos</button>';
+  staff.forEach(s => {
+    html += '<button class="pill ' + (activeStaffId === s.id ? 'active' : '') + '" onclick="setStaffFilter(\'' + s.id + '\')"><span class="dot" style="background:' + s.color + '"></span>' + s.name + '</button>';
+  });
+  html += '</div>';
+
+  html += '<div class="agenda-table"><div class="grid" style="grid-template-columns:70px repeat(' + (visibleStaff.length || 1) + ',1fr)">';
+  html += '<div class="cell"></div>';
+  visibleStaff.forEach(s => {
+    html += '<div class="cell head-cell"><span class="dot" style="background:' + s.color + '"></span>' + s.name + '</div>';
+  });
+
+  const covered = (staffId, time) => activeAppts.some(a => {
+    if (a.staff_id !== staffId) return false;
+    const startMin = toMinutes(a.start);
+    const tMin = toMinutes(time);
+    return tMin > startMin && tMin < startMin + a.duration;
+  });
+  const apptAt = (staffId, time) => activeAppts.find(a => a.staff_id === staffId && a.start === time);
+
+  slots.forEach(time => {
+    const isHour = time.endsWith(':00');
+    html += '<div class="cell time-cell">' + (isHour ? time : '') + '</div>';
+    visibleStaff.forEach(s => {
+      const appt = apptAt(s.id, time);
+      if (!appt && covered(s.id, time)) { html += '<div class="cell"></div>'; return; }
+      if (appt) {
+        const rows = Math.max(1, Math.round((appt.duration || 30) / SLOT_MIN));
+        html += '<div class="cell appt-cell" style="grid-row:span ' + rows + '">' +
+          '<button class="appt-btn" style="border-left:3px solid ' + s.color + '" onclick=\'openApptModal(null,"' + appt.id + '")\'>' +
+          '<div class="appt-client">' + appt.client_name + '</div><div class="appt-service">' + appt.service_name + '</div></button></div>';
+      } else {
+        html += '<button class="cell slot-cell" onclick=\'openApptModal({staffId:"' + s.id + '",time:"' + time + '"},null)\'></button>';
+      }
+    });
+  });
+  html += '</div></div>';
+  return html;
+}
+function setStaffFilter(id) { activeStaffId = id; renderView(); }
+async function shiftDay(delta) {
+  currentDate.setDate(currentDate.getDate() + delta);
+  await loadAppointments();
+  renderView();
+}
+
+// ---------- MODAL DE CITA ----------
+function openApptModal(slot, apptId) {
+  const appt = apptId ? appointments.find(a => a.id === apptId) : null;
+  const isEdit = !!appt;
+  const staff = info.staff, services = info.services;
+  const staffId = appt ? appt.staff_id : (slot ? slot.staffId : staff[0].id);
+  const start = appt ? appt.start : (slot ? slot.time : '09:00');
+  const serviceId = appt ? appt.service_id : services[0].id;
+
+  let html = '<div class="modal-title-row"><div class="modal-title">' + (isEdit ? 'Editar cita' : 'Nueva cita') + '</div>' +
+    '<button class="modal-close" onclick="closeModal()">✕</button></div>';
+
+  html += '<div class="modal-field"><div class="field-label">Cliente</div><input id="m_clientName" placeholder="Nombre del cliente" value="' + (appt ? appt.client_name : '') + '" ' + (isEdit ? 'disabled' : '') + '></div>';
+  if (!isEdit) html += '<div class="modal-field"><div class="field-label">Teléfono</div><input id="m_clientPhone" placeholder="600 000 000"></div>';
+
+  html += '<div class="modal-row"><div class="modal-field"><div class="field-label">Profesional</div><select id="m_staffId">' +
+    staff.map(s => '<option value="' + s.id + '" ' + (s.id === staffId ? 'selected' : '') + '>' + s.name + '</option>').join('') + '</select></div>';
+  html += '<div class="modal-field"><div class="field-label">Hora</div><input id="m_start" type="time" value="' + start + '"></div></div>';
+
+  if (!isEdit) {
+    html += '<div class="modal-field"><div class="field-label">Servicio</div><select id="m_serviceId">' +
+      services.map(s => '<option value="' + s.id + '">' + s.name + ' · ' + s.duration + ' min · ' + s.price + '€</option>').join('') + '</select></div>';
+  }
+  html += '<div id="m_err"></div>';
+  html += '<div class="modal-footer">' +
+    (isEdit ? '<button class="btn btn-rust" onclick="cancelAppt(\'' + appt.id + '\')">🗑 Cancelar cita</button>' : '<span></span>') +
+    '<button class="btn btn-dark" id="m_saveBtn" onclick=\'saveAppt(' + (isEdit ? '"' + appt.id + '"' : 'null') + ')\'>✓ ' + (isEdit ? 'Guardar cambios' : 'Confirmar cita') + '</button></div>';
+
+  document.getElementById('modalBox').innerHTML = html;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('active'); }
+
+async function saveAppt(apptId) {
+  const btn = document.getElementById('m_saveBtn');
+  const errEl = document.getElementById('m_err');
+  const staffId = document.getElementById('m_staffId').value;
+  const start = document.getElementById('m_start').value;
+  btn.disabled = true;
+  try {
+    if (apptId) {
+      await api('/api/' + SLUG + '/admin/appointments/' + apptId, { method: 'PATCH', body: { start, staffId } });
+    } else {
+      const clientName = document.getElementById('m_clientName').value.trim();
+      const clientPhone = document.getElementById('m_clientPhone').value.trim();
+      const serviceId = document.getElementById('m_serviceId').value;
+      if (!clientName) { errEl.innerHTML = '<div class="err">Escribe el nombre del cliente.</div>'; btn.disabled = false; return; }
+      await api('/api/' + SLUG + '/admin/appointments', { method: 'POST', body: { date: fmtDate(currentDate), start, staffId, serviceId, clientName, clientPhone } });
+    }
+    await Promise.all([loadAppointments(), loadClients()]);
+    closeModal();
+    renderView();
+  } catch (e) {
+    errEl.innerHTML = '<div class="err">' + e.message + '</div>';
+    btn.disabled = false;
+  }
+}
+async function cancelAppt(apptId) {
+  await api('/api/' + SLUG + '/admin/appointments/' + apptId, { method: 'PATCH', body: { status: 'cancelled' } });
+  await Promise.all([loadAppointments(), loadClients()]);
+  closeModal();
+  renderView();
+}
+
+// ---------- CLIENTES ----------
+function renderClients() {
+  let html = '<div class="section-title">Clientes</div><div class="section-sub">' + clients.length + ' en tu base de datos</div>';
+  html += '<div class="list-card">';
+  clients.forEach(c => {
+    const visits = appointments.filter(a => a.client_id === c.id && a.status !== 'cancelled').length;
+    html += '<div class="list-row"><div><div class="row-name">' + c.name + '</div><div class="row-meta">📞 ' + (c.phone || 'sin teléfono') + '</div></div>' +
+      '<div class="row-meta">' + visits + (visits === 1 ? ' visita' : ' visitas') + '</div></div>';
+  });
+  if (clients.length === 0) html += '<div style="padding:24px;text-align:center;color:var(--muted);font-size:13.5px">Aún no tienes clientes.</div>';
+  html += '</div>';
+  return html;
+}
+
+// ---------- SERVICIOS ----------
+function renderServices() {
+  let html = '<div class="section-title">Servicios</div><div class="section-sub">Lo que ofreces, con duración y precio</div>';
+  html += '<div class="list-card">';
+  info.services.forEach(s => {
+    html += '<div class="list-row"><div><div class="row-name">' + s.name + '</div><div class="row-meta">⏱ ' + s.duration + ' min · ' + s.price + '€</div></div>' +
+      '<button class="icon-plain-btn" onclick="removeService(\'' + s.id + '\')">🗑</button></div>';
+  });
+  html += '</div><div class="add-row">' +
+    '<input id="svcName" placeholder="Nombre del servicio">' +
+    '<input id="svcDuration" type="number" placeholder="min" style="max-width:80px">' +
+    '<input id="svcPrice" type="number" placeholder="€" style="max-width:80px">' +
+    '<button class="btn btn-dark" onclick="addService()">Añadir</button></div>';
+  return html;
+}
+async function addService() {
+  const name = document.getElementById('svcName').value.trim();
+  const duration = Number(document.getElementById('svcDuration').value) || 30;
+  const price = Number(document.getElementById('svcPrice').value) || 0;
+  if (!name) return;
+  await api('/api/' + SLUG + '/admin/services', { method: 'POST', body: { name, duration, price } });
+  info = await api('/api/' + SLUG);
+  renderView();
+}
+async function removeService(id) {
+  await api('/api/' + SLUG + '/admin/services/' + id, { method: 'DELETE' });
+  info = await api('/api/' + SLUG);
+  renderView();
+}
+
+// ---------- EQUIPO ----------
+function renderStaff() {
+  let html = '<div class="section-title">Equipo</div><div class="section-sub">Profesionales que aparecen en la agenda</div>';
+  html += '<div class="list-card">';
+  info.staff.forEach(s => {
+    html += '<div class="list-row"><div style="display:flex;align-items:center;gap:10px"><span class="dot" style="background:' + s.color + ';width:10px;height:10px"></span><span class="row-name">' + s.name + '</span></div>' +
+      '<button class="icon-plain-btn" onclick="removeStaff(\'' + s.id + '\')">🗑</button></div>';
+  });
+  html += '</div><div class="add-row"><input id="staffName" placeholder="Nombre del profesional"><button class="btn btn-dark" onclick="addStaff()">Añadir</button></div>';
+  return html;
+}
+async function addStaff() {
+  const name = document.getElementById('staffName').value.trim();
+  if (!name) return;
+  const palette = ['#BD9552', '#4F6F52', '#B5533C', '#5C7A99', '#8A6A9C'];
+  const color = palette[info.staff.length % palette.length];
+  await api('/api/' + SLUG + '/admin/staff', { method: 'POST', body: { name, color } });
+  info = await api('/api/' + SLUG);
+  renderView();
+}
+async function removeStaff(id) {
+  await api('/api/' + SLUG + '/admin/staff/' + id, { method: 'DELETE' });
+  info = await api('/api/' + SLUG);
+  renderView();
+}
+</script>
+</body>
+</html>
