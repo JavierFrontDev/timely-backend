@@ -71,3 +71,5 @@ persistente entre despliegues (depende del plan). En cuanto quieras
 mantener datos reales de clientes de forma fiable, avísame y migramos a
 una base de datos gestionada (ej. Postgres de Railway/Supabase), es un
 cambio pequeño porque toda la lógica ya está separada en `db.js`.
+
+Actualizado.
