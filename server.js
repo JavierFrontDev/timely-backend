@@ -4,6 +4,7 @@ const path = require("path");
 const db = require("./db");
 const publicRoutes = require("./routes/public");
 const adminRoutes = require("./routes/admin");
+const registerRoutes = require("./routes/register");
 
 const app = express();
 app.use(cors());
@@ -24,6 +25,9 @@ app.param("slug", (req, res, next, slug) => {
 });
 
 app.get("/health", (req, res) => res.json({ ok: true, service: "timely-backend" }));
+
+// Alta de negocios nuevos (sin slug en la URL, así que va antes de /api/:slug)
+app.use("/api/register", registerRoutes);
 
 // Importante: las rutas de admin se registran ANTES que las públicas,
 // porque "/api/:slug" (público) sería un prefijo que también podría

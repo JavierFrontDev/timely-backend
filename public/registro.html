@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Da de alta tu negocio — Timely</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#FAF7F1; --surface:#FFFFFF; --ink:#1B2430; --brass:#BD9552; --text:#2A2A28; --muted:#8A8577; --line:#E7E1D6; --rust:#B5533C; --sage:#4F6F52; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); display: flex; justify-content: center; min-height: 100vh; padding: 40px 16px; }
+  .card { width: 100%; max-width: 420px; background: var(--surface); border-radius: 14px; padding: 32px; border: 1px solid var(--line); height: fit-content; }
+  .brand { display: flex; align-items: center; gap: 8px; font-family: 'Fraunces', serif; font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+  .sub { font-size: 13.5px; color: var(--muted); margin-bottom: 24px; }
+  .field { margin-bottom: 14px; }
+  .field-label { font-size: 12.5px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+  input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); font-size: 14px; font-family: 'Inter', sans-serif; background: #FCFAF6; color: var(--text); }
+  .hint { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  .btn { width: 100%; background: var(--ink); color: #F7F1E4; border: none; padding: 12px 0; border-radius: 10px; font-size: 14.5px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+  .btn:disabled { opacity: 0.5; }
+  .error-msg { color: var(--rust); font-size: 12.5px; margin-top: 10px; }
+  .success { text-align: center; }
+  .check { width: 52px; height: 52px; border-radius: 999px; background: var(--sage); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #fff; font-size: 26px; }
+  .link-box { background: #F1EBDD; border-radius: 10px; padding: 14px; text-align: left; margin-top: 16px; font-size: 13px; word-break: break-all; }
+  .link-box a { color: var(--ink); display: block; margin-top: 4px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="card" id="app">
+  <div class="brand">✂️ Timely</div>
+  <div class="sub">Da de alta tu barbería o peluquería en unos segundos</div>
+
+  <div id="formView">
+    <div class="field"><div class="field-label">Nombre del negocio</div><input id="f_name" placeholder="Barbería Central"></div>
+    <div class="field"><div class="field-label">Dirección (opcional)</div><input id="f_address" placeholder="Calle Mayor 14"></div>
+    <div class="field">
+      <div class="field-label">Identificador para tu URL (opcional)</div>
+      <input id="f_slug" placeholder="se genera solo a partir del nombre">
+      <div class="hint">Aparecerá como ?negocio=tu-identificador. Solo minúsculas, números y guiones.</div>
+    </div>
+    <div class="field"><div class="field-label">Contraseña de administrador</div><input id="f_password" type="password" placeholder="mínimo 6 caracteres"></div>
+    <div id="formErr"></div>
+    <button class="btn" id="submitBtn" onclick="registerBusiness()">Crear mi negocio</button>
+  </div>
+
+  <div id="successView" style="display:none"></div>
+</div>
+
+<script>
+async function registerBusiness() {
+  const name = document.getElementById('f_name').value.trim();
+  const address = document.getElementById('f_address').value.trim();
+  const slug = document.getElementById('f_slug').value.trim();
+  const password = document.getElementById('f_password').value;
+  const errEl = document.getElementById('formErr');
+  const btn = document.getElementById('submitBtn');
+  errEl.innerHTML = '';
+
+  if (!name) { errEl.innerHTML = '<div class="error-msg">Escribe el nombre de tu negocio.</div>'; return; }
+  if (!password || password.length < 6) { errEl.innerHTML = '<div class="error-msg">La contraseña debe tener al menos 6 caracteres.</div>'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Creando…';
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, address, slug, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'No se pudo crear el negocio.');
+
+    document.getElementById('formView').style.display = 'none';
+    const successView = document.getElementById('successView');
+    successView.style.display = 'block';
+    successView.innerHTML =
+      '<div class="success"><div class="check">✓</div>' +
+      '<div style="font-family:\'Fraunces\',serif;font-size:19px;font-weight:600">¡Listo, ' + data.name + ' ya existe!</div>' +
+      '<div class="link-box">' +
+      'Enlace para que reserven tus clientes:<a href="' + data.publicUrl + '" target="_blank">' + location.origin + data.publicUrl + '</a>' +
+      'Enlace de tu panel de gestión (guarda tu contraseña):<a href="' + data.adminUrl + '" target="_blank">' + location.origin + data.adminUrl + '</a>' +
+      '</div></div>';
+  } catch (e) {
+    errEl.innerHTML = '<div class="error-msg">' + e.message + '</div>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Crear mi negocio';
+  }
+}
+</script>
+</body>
+</html>
